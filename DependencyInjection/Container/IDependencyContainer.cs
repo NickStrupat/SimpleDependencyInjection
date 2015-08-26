@@ -4,7 +4,7 @@ namespace DependencyInjection.Container
 {
     public interface IDependencyContainer
     {
-        void RegisterType<T>(Type classType);
-        T CreateInstance<T>();
+        void RegisterType<TInterface, TImplementation>();
+        TInterface ResolveInstance<TInterface>();
     }
 }

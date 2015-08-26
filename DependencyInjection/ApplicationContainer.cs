@@ -16,12 +16,12 @@ namespace DependencyInjection
             Container = new DependencyContainer();
 
             //In House Types
-            Container.RegisterType<IZoo>(typeof(Zoo));
-            Container.RegisterType<IVisitorService>(typeof(VisitorService));
-            Container.RegisterType<IAnimalService>(typeof(AnimalService));
+            Container.RegisterType<IZoo, Zoo>();
+            Container.RegisterType<IVisitorService, VisitorService>();
+            Container.RegisterType<IAnimalService, AnimalService>();
 
             //External Types
-            Container.RegisterType<IPersonNameGenerator>(typeof (PersonNameGenerator));
+            Container.RegisterType<IPersonNameGenerator, PersonNameGenerator>();
         }
 
         public static T Resolve<T>()

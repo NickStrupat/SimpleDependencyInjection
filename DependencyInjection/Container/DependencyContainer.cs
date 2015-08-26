@@ -1,48 +1,50 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
+using System.Linq.Expressions;
 
 namespace DependencyInjection.Container
 {
     public class DependencyContainer : IDependencyContainer
     {
-        private readonly Dictionary<Type, Type> _container;
-
-        public DependencyContainer()
+        private readonly Dictionary<Type, Lazy<Object>> _typeRegistrations = new Dictionary<Type, Lazy<Object>>();
+        
+        public void RegisterType<TInterface, TImplementation>()
         {
-            _container = new Dictionary<Type, Type>();
+            if (_typeRegistrations.ContainsKey(typeof(TInterface)))
+                throw new InvalidOperationException("Implementation type already registered for this interface.");
+            _typeRegistrations.Add(typeof (TInterface), new Lazy<Object>(() => Resolver<TImplementation>.Resolve()));
         }
 
-        public void RegisterType<T>(Type classType)
+        public TInterface ResolveInstance<TInterface>()
         {
-            _container.Add(typeof(T), classType);
+            if (!_typeRegistrations.ContainsKey(typeof(TInterface)))
+                throw new InvalidOperationException("Implementation type not yet registered for this interface.");
+            return (TInterface) _typeRegistrations[typeof(TInterface)].Value;
         }
 
-        public T CreateInstance<T>()
+        static class Resolver<T>
         {
-            return (T)CreateInstance(typeof(T));
-        }
+            public static readonly Func<T> Resolve = GetResolver();
 
-        public object CreateInstance(Type interfaceType)
-        {
-            var resolvedType = _container[interfaceType];
-            var constructors = resolvedType.GetConstructors();
-            if (constructors.Any())
+            private static Func<T> GetResolver()
             {
-                var constructorInfo = constructors.First();
-                var resolvedParameters = ResolveConstructorParameters(constructorInfo).ToArray();
-                return Activator.CreateInstance(resolvedType, resolvedParameters);
-            }
-            return Activator.CreateInstance(resolvedType);
-        }
+                var constructors = typeof(T).GetConstructors();
+                if (constructors.Count() == 0)
+                    throw new InvalidOperationException("Implementation type has no public constructor.");
+                if (constructors.Count() > 1)
+                    throw new InvalidOperationException("Implementation type has more than one public constructor.");
 
-        private IEnumerable<object> ResolveConstructorParameters(ConstructorInfo constructorInfo)
-        {
-            //if you have circular dependencies you will run into trouble here
-            foreach (var parameter in constructorInfo.GetParameters())
-            {
-                yield return CreateInstance(parameter.ParameterType);
+                var constructor = constructors.Single();
+                var parameters = constructor.GetParameters();
+                var resolveTypeInfo = typeof(DependencyContainer).getmeth
+                var parameterResolveExpressions = new List<MethodCallExpression>();
+                foreach (var parameterInfo in parameters)
+                {
+                    parameterResolveExpressions.Add(Expression.Call());
+                }
+
+                return Expression.Lambda<Func<T>>(Expression.New(typeof (T))).Compile();
             }
         }
     }
