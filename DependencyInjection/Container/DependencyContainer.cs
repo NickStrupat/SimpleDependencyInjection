@@ -22,8 +22,8 @@ namespace DependencyInjection.Container {
 			return (TInterface)_typeRegistrations[typeof(TInterface)].Value;
 		}
 
-		static class Resolver<TInterface> where TInterface : class, new() {
-			public static readonly Func<TInterface> Resolve = Expression.Lambda<Func<TInterface>>(Expression.New(typeof(TInterface))).Compile();
+		static class Resolver<TImplementation> where TImplementation : class, new() {
+			public static readonly Func<TImplementation> Resolve = Expression.Lambda<Func<TImplementation>>(Expression.New(typeof(TImplementation))).Compile();
 		}
 	}
 }
