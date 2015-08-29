@@ -1,31 +1,73 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Linq.Expressions;
+using System.ComponentModel;
+using System.Reflection;
+using System.Reflection.Emit;
 
 namespace DependencyInjection.Container {
-	public class DependencyContainer : IDependencyContainer {
-		private readonly ConcurrentDictionary<Type, Lazy<Object>> _typeRegistrations = new ConcurrentDictionary<Type, Lazy<Object>>();
+	public enum ImplementationLifetime {
+		NewPerResolution,
+		NewPerContainerInstance
+	}
 
-		public void Register<TInterface, TImplementation>() where TImplementation : class, TInterface, new() {
-			Register<TInterface, TImplementation>(() => Resolver<TImplementation>.Resolve());
+	public class DependencyContainer : IDependencyContainer {
+		private readonly ConcurrentDictionary<Type, IImplementationFactory> registrations = new ConcurrentDictionary<Type, IImplementationFactory>();
+
+		public void Register<TInterface, TImplementation>(ImplementationLifetime implementationLifetime = ImplementationLifetime.NewPerResolution) where TImplementation : class, TInterface, new() {
+            Register<TInterface, TImplementation>(() => Factory<TImplementation>.Create(), implementationLifetime);
 		}
 
-		public void Register<TInterface, TImplementation>(Func<TImplementation> factory) where TImplementation : class, TInterface {
+		public void Register<TInterface, TImplementation>(Func<TImplementation> factory, ImplementationLifetime implementationLifetime = ImplementationLifetime.NewPerResolution) where TImplementation : class, TInterface {
 			if (factory == null)
-				throw new ArgumentNullException("factory");
-			if (!_typeRegistrations.TryAdd(typeof(TInterface), new Lazy<Object>(factory)))
+				throw new ArgumentNullException(nameof(factory));
+			if (!registrations.TryAdd(typeof(TInterface), GetFactory(factory, implementationLifetime)))
 				throw new InvalidOperationException("Implementation type already registered for this interface.");
 		}
 
 		public TInterface Resolve<TInterface>() {
-			Lazy<Object> factory;
-			if (!_typeRegistrations.TryGetValue(typeof(TInterface), out factory))
+			IImplementationFactory implementationFactory;
+			if (!registrations.TryGetValue(typeof(TInterface), out implementationFactory))
 				throw new InvalidOperationException("Implementation type not yet registered for this interface.");
-			return (TInterface)factory.Value;
+			return (TInterface)implementationFactory.Instance;
 		}
 
-		static class Resolver<TImplementation> where TImplementation : class, new() {
-			public static readonly Func<TImplementation> Resolve = Expression.Lambda<Func<TImplementation>>(Expression.New(typeof(TImplementation))).Compile();
+		private interface IImplementationFactory {
+			Object Instance { get; }
+		}
+
+		private class PerContainer : IImplementationFactory {
+			private readonly Lazy<Object> factory;
+			public PerContainer(Func<Object> factory) { this.factory = new Lazy<Object>(factory); }
+			Object IImplementationFactory.Instance => factory.Value;
+		}
+
+		private class PerResolution : IImplementationFactory {
+			private readonly Func<Object> factory;
+			public PerResolution(Func<Object> factory) { this.factory = factory; }
+			Object IImplementationFactory.Instance => factory();
+		}
+
+		private static IImplementationFactory GetFactory(Func<Object> factory, ImplementationLifetime implementationLifetime) {
+			switch (implementationLifetime) {
+				case ImplementationLifetime.NewPerContainerInstance:
+					return new PerContainer(factory);
+				case ImplementationLifetime.NewPerResolution:
+					return new PerResolution(factory);
+				default:
+					throw new InvalidEnumArgumentException(nameof(implementationLifetime), (Int32) implementationLifetime, typeof(ImplementationLifetime));
+			}
+		}
+
+		static class Factory<TImplementation> where TImplementation : class, new() {
+			public static readonly Func<TImplementation> Create = GetConstructor();
+
+			private static Func<TImplementation> GetConstructor() {
+				var dynamicMethod = new DynamicMethod(typeof(TImplementation).Name + "Ctor", typeof(TImplementation), Type.EmptyTypes, typeof(TImplementation), true);
+				var ilGen = dynamicMethod.GetILGenerator();
+				ilGen.Emit(OpCodes.Newobj, typeof(TImplementation).GetConstructor(BindingFlags.Public | BindingFlags.Instance, null, Type.EmptyTypes, new ParameterModifier[0]));
+				ilGen.Emit(OpCodes.Ret);
+				return (Func<TImplementation>)dynamicMethod.CreateDelegate(typeof(Func<TImplementation>));
+			}
 		}
 	}
 }

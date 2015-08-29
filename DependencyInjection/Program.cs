@@ -1,5 +1,4 @@
 ﻿using System;
-
 using DependencyInjection.Examples;
 
 namespace DependencyInjection {

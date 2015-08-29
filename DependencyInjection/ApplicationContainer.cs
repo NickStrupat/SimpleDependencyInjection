@@ -13,7 +13,7 @@ namespace DependencyInjection {
 			//In House Types
 			Container.Register<IZoo, Zoo>(() => new Zoo(Container.Resolve<IAnimalService>(), Container.Resolve<IVisitorService>()));
 			Container.Register<IVisitorService, VisitorService>(() => new VisitorService(Container.Resolve<IPersonNameGenerator>()));
-			Container.Register<IAnimalService, AnimalService>();
+			Container.Register<IAnimalService, AnimalService>(ImplementationLifetime.NewPerContainerInstance);
 
 			//External Types
 			Container.Register<IPersonNameGenerator, PersonNameGenerator>();
