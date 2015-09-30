@@ -44,6 +44,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Container\Dependencies.cs" />
     <Compile Include="Examples\AnimalService.cs" />
     <Compile Include="ApplicationContainer.cs" />
     <Compile Include="Container\DependencyContainer.cs" />
