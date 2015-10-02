@@ -15,18 +15,18 @@ namespace DependencyInjection {
 
 	class Program {
 		static Program() {
-			StaticContainer.Register(() => new Zoo(StaticContainer.Resolve<IAnimalService>(), StaticContainer.Resolve<IVisitorService>()));
-			StaticContainer.Register(() => new VisitorService(StaticContainer.Resolve<IPersonNameGenerator>()));
-			StaticContainer.RegisterSingleton<AnimalService>();
-			StaticContainer.Register<Bar>();
+			DependencyContainer.Instance.Register(() => new Zoo(StaticContainer.Resolve<IAnimalService>(), StaticContainer.Resolve<IVisitorService>()));
+			DependencyContainer.Instance.Register(() => new VisitorService(StaticContainer.Resolve<IPersonNameGenerator>()));
+			DependencyContainer.Instance.RegisterSingleton<AnimalService>();
+			DependencyContainer.Instance.Register<Bar>();
 
 			//External Types
-			StaticContainer.Register<IPersonNameGenerator, PersonNameGenerator>();
+			DependencyContainer.Instance.Register<IPersonNameGenerator, PersonNameGenerator>();
 		}
 
 		static void Main(String[] args) {
-			var foo = StaticContainer.Resolve<Foo>();
-			var zoo = StaticContainer.Resolve<IZoo>();
+			var foo = DependencyContainer.Instance.Resolve<Foo>();
+			var zoo = DependencyContainer.Instance.Resolve<IZoo>();
 
 			zoo.GetNewAnimal();
 			zoo.GetNewAnimal();

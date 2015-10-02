@@ -31,7 +31,7 @@ namespace DependencyInjection.Container {
 		private static void DecrementCount() => Interlocked.Decrement(ref count);
 		private static Int64 GetCount() => Interlocked.Read(ref count);
 
-		private DependencyContainer() {}
+		private DependencyContainer() { Console.WriteLine(nameof(DependencyContainer)); }
 		~DependencyContainer() { DecrementCount(); }
 
 		public static IDependencyContainer Create() {
