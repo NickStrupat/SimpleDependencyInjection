@@ -2,8 +2,10 @@ using System;
 
 namespace DependencyInjection.Container {
 	internal class StaticDependencyContainerWrapper : IDependencyContainer {
-		internal StaticDependencyContainerWrapper() { StaticContainer.Reset(); Console.WriteLine(nameof(StaticDependencyContainerWrapper)); }
-		~StaticDependencyContainerWrapper() { StaticContainer.Reset(); }
+		internal StaticDependencyContainerWrapper() { StaticContainer.Reset(); }
+		~StaticDependencyContainerWrapper() { Dispose(); }
+		public void Dispose() => StaticContainer.Reset();
+
 		void IDependencyContainer.Register<TInterface, TImpl>(Func<TImpl> factory) => StaticContainer.Register<TInterface, TImpl>(factory);
 		void IDependencyContainer.Register<TInterface, TImpl>() => StaticContainer.Register<TInterface, TImpl>();
 		void IDependencyContainer.Register<TImpl>(Func<TImpl> factory) => StaticContainer.Register<TImpl>(factory);

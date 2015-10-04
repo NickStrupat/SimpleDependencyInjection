@@ -15,8 +15,8 @@ namespace DependencyInjection {
 
 	class Program {
 		static Program() {
-			DependencyContainer.Instance.Register(() => new Zoo(StaticContainer.Resolve<IAnimalService>(), StaticContainer.Resolve<IVisitorService>()));
-			DependencyContainer.Instance.Register(() => new VisitorService(StaticContainer.Resolve<IPersonNameGenerator>()));
+			DependencyContainer.Instance.Register(() => new Zoo(DependencyContainer.Instance.Resolve<IAnimalService>(), DependencyContainer.Instance.Resolve<IVisitorService>()));
+			DependencyContainer.Instance.Register(() => new VisitorService(DependencyContainer.Instance.Resolve<IPersonNameGenerator>()));
 			DependencyContainer.Instance.RegisterSingleton<AnimalService>();
 			DependencyContainer.Instance.Register<Bar>();
 
@@ -42,7 +42,6 @@ namespace DependencyInjection {
 			Console.WriteLine("Animals are:");
 			zoo.ListAnimals();
 
-			Console.ReadKey();
 		}
 	}
 }

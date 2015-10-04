@@ -1,7 +1,7 @@
 ﻿using System;
 
 namespace DependencyInjection.Container {
-	public interface IDependencyContainer {
+	public interface IDependencyContainer : IDisposable {
 		void Register<TInterface, TImplementation>(Func<TImplementation> factory) where TImplementation : class, TInterface where TInterface : class;
 		void Register<TInterface, TImplementation>() where TImplementation : class, TInterface, new() where TInterface : class;
 

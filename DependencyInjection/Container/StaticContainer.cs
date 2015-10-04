@@ -8,9 +8,11 @@ namespace DependencyInjection.Container {
 		private static readonly Object syncRoot = new Object();
 
 		internal static void Reset() {
-			lock (syncRoot)
+			lock (syncRoot) {
 				foreach (var resetAction in resetActions)
 					resetAction();
+				resetActions.Clear();
+			}
 		}
 
 		private static class Registration<TInterface>
@@ -48,7 +50,7 @@ namespace DependencyInjection.Container {
 			Register(Factory<TImplementation>.Create);
 		}
 
-		
+
 
 		private static class SingletonRegistration<TInterface>
 		where TInterface : class {
@@ -62,6 +64,12 @@ namespace DependencyInjection.Container {
 				throw new ArgumentNullException(nameof(factory));
 
 			SingletonRegistration<TInterface>.Implementation = new Lazy<TInterface>(factory);
+			if (typeof(IDisposable).IsAssignableFrom(typeof(TImplementation)))
+				lock (syncRoot)
+					resetActions.Add(() => {
+						if (SingletonRegistration<TInterface>.Implementation.IsValueCreated)
+							((IDisposable) (TImplementation) SingletonRegistration<TInterface>.Implementation.Value).Dispose();
+					});
 			Register<TInterface, TImplementation>(() => (TImplementation) SingletonRegistration<TInterface>.Implementation.Value);
 		}
 
@@ -70,7 +78,7 @@ namespace DependencyInjection.Container {
 		where TInterface : class {
 			RegisterSingleton<TInterface, TImplementation>(Factory<TImplementation>.Create);
 		}
-		
+
 		private static readonly MethodInfo RegisterSingletonMethod = new Action<Func<Object>>(RegisterSingleton<Object, Object>).Method.GetGenericMethodDefinition();
 
 		public static void RegisterSingleton<TImplementation>(Func<TImplementation> factory)
