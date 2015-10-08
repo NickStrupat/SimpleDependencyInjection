@@ -19,7 +19,7 @@ namespace DependencyInjection.Container {
 		}
 	}
 
-	public class DependencyContainer : IDependencyContainer {
+	public sealed class DependencyContainer : IDependencyContainer {
 		private static Int64 count;
 		private static void IncrementCount() => Interlocked.Increment(ref count);
 		private static void DecrementCount() => Interlocked.Decrement(ref count);
@@ -56,8 +56,9 @@ namespace DependencyInjection.Container {
 			while (type.BaseType != null && type.BaseType.IsAbstract)
 				abstractBases.Add(type = type.BaseType);
 
-			foreach (var @interface in abstractBases.Concat(interfaces))
-				registerMethodInfo.MakeGenericMethod(@interface, type).Invoke(instance, new Object[] { factory });
+		    var parameters = registerMethodInfo.GetParameters().Length == 2 ? new Object[] {instance, factory} : new Object[] {factory};
+            foreach (var @interface in abstractBases.Concat(interfaces))
+				registerMethodInfo.MakeGenericMethod(@interface, type).Invoke(null, parameters);
 		}
 
 		private readonly ConcurrentDictionary<Type, Func<Object>> registrations = new ConcurrentDictionary<Type, Func<Object>>();
@@ -75,7 +76,7 @@ namespace DependencyInjection.Container {
 		void IDependencyContainer.Register<TInterface, TImpl>(Func<TImpl> factory) => Register<TInterface, TImpl>(this, factory);
 		void IDependencyContainer.Register<TInterface, TImpl>() => Register<TInterface, TImpl>(this, Factory<TImpl>.Create);
 		void IDependencyContainer.Register<TImpl>(Func<TImpl> factory) => Register(factory, RegisterMethod);
-		void IDependencyContainer.Register<TImpl>() => Register(Factory<TImpl>.Create, RegisterMethod);
+		void IDependencyContainer.Register<TImpl>() => Register(Factory<TImpl>.Create, RegisterMethod, this);
 
 		private static void RegisterSingleton<TInterface, TImpl>(DependencyContainer dc, Func<TImpl> factory)
 		where TImpl : class, TInterface

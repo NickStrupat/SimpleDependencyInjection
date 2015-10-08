@@ -4,14 +4,17 @@ using System.Reflection;
 
 namespace DependencyInjection.Container {
 	internal static class StaticContainer {
-		private static readonly List<Action> resetActions = new List<Action>();
+		private static readonly Dictionary<Type, Action> disposals = new Dictionary<Type, Action>();
+		private static readonly Dictionary<Type, Action> resets = new Dictionary<Type, Action>();
 		private static readonly Object syncRoot = new Object();
 
 		internal static void Reset() {
 			lock (syncRoot) {
-				foreach (var resetAction in resetActions)
+				foreach (var disposalAction in disposals.Values)
+					disposalAction();
+				foreach (var resetAction in resets.Values)
 					resetAction();
-				resetActions.Clear();
+				resets.Clear();
 			}
 		}
 
@@ -21,14 +24,14 @@ namespace DependencyInjection.Container {
 		}
 
 		public static void Register<TInterface, TImplementation>(Func<TImplementation> factory)
-		where TImplementation : class, TInterface
+        where TImplementation : class, TInterface
 		where TInterface : class {
 			if (factory == null)
 				throw new ArgumentNullException(nameof(factory));
 
 			lock (syncRoot) {
 				Registration<TInterface>.Implementation = factory;
-				resetActions.Add(() => Registration<TInterface>.Implementation = null);
+				resets[typeof(TImplementation)] = () => Registration<TInterface>.Implementation = null;
 			}
 		}
 
@@ -52,25 +55,20 @@ namespace DependencyInjection.Container {
 
 
 
-		private static class SingletonRegistration<TInterface>
-		where TInterface : class {
-			public static Lazy<TInterface> Implementation;
-		}
-
 		public static void RegisterSingleton<TInterface, TImplementation>(Func<TImplementation> factory)
-		where TImplementation : class, TInterface
+        where TImplementation : class, TInterface
 		where TInterface : class {
 			if (factory == null)
 				throw new ArgumentNullException(nameof(factory));
 
-			SingletonRegistration<TInterface>.Implementation = new Lazy<TInterface>(factory);
+			var lazySingleton = new Lazy<TImplementation>(factory);
 			if (typeof(IDisposable).IsAssignableFrom(typeof(TImplementation)))
 				lock (syncRoot)
-					resetActions.Add(() => {
-						if (SingletonRegistration<TInterface>.Implementation.IsValueCreated)
-							((IDisposable) (TImplementation) SingletonRegistration<TInterface>.Implementation.Value).Dispose();
-					});
-			Register<TInterface, TImplementation>(() => (TImplementation) SingletonRegistration<TInterface>.Implementation.Value);
+					disposals[typeof(TImplementation)] = () => {
+						if (lazySingleton.IsValueCreated)
+							((IDisposable) lazySingleton.Value).Dispose();
+					};
+			Register<TInterface, TImplementation>(() => lazySingleton.Value);
 		}
 
 		public static void RegisterSingleton<TInterface, TImplementation>()
