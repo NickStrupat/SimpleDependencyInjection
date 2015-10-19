@@ -20,10 +20,7 @@ namespace DependencyInjection.Container {
 	}
 
 	public sealed class DependencyContainer : IDependencyContainer {
-		private static Int64 count;
-		private static void IncrementCount() => Interlocked.Increment(ref count);
-		private static void DecrementCount() => Interlocked.Decrement(ref count);
-		private static Int64 GetCount() => Interlocked.Read(ref count);
+		private static Int64 containerCount;
 
 		private DependencyContainer() { }
 		~DependencyContainer() { Dispose(); }
@@ -33,12 +30,12 @@ namespace DependencyInjection.Container {
 			lock (syncRoot)
 				foreach (var disposer in disposers)
 					disposer();
-			DecrementCount();
+			Interlocked.Decrement(ref containerCount);
 		}
 
 		public static IDependencyContainer Create() {
-			var dc = GetCount() == 0 ? (IDependencyContainer) new StaticDependencyContainerWrapper() : new DependencyContainer();
-			IncrementCount();
+			Interlocked.Increment(ref containerCount);
+			var dc = Interlocked.Read(ref containerCount) == 1 ? (IDependencyContainer) new StaticDependencyContainerWrapper() : new DependencyContainer();
 			return dc;
 		}
 
