@@ -24,8 +24,10 @@ namespace DependencyInjection.Container {
 
 		private DependencyContainer() { }
 		~DependencyContainer() { Dispose(); }
+
 		private readonly List<Action> disposers = new List<Action>();
 		private readonly Object syncRoot = new Object();
+
 		public void Dispose() {
 			lock (syncRoot)
 				foreach (var disposer in disposers)
@@ -34,9 +36,9 @@ namespace DependencyInjection.Container {
 		}
 
 		public static IDependencyContainer Create() {
-			Interlocked.Increment(ref containerCount);
-			var dc = Interlocked.Read(ref containerCount) == 1 ? (IDependencyContainer) new StaticDependencyContainerWrapper() : new DependencyContainer();
-			return dc;
+			if (Interlocked.Increment(ref containerCount) == 1)
+				return new StaticDependencyContainerWrapper();
+			return new DependencyContainer();
 		}
 
 		private static readonly Lazy<IDependencyContainer> instance = new Lazy<IDependencyContainer>(Create);
